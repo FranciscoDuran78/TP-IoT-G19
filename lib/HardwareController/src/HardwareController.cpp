@@ -117,13 +117,15 @@ void HardwareController::rememberCommand(const String &command) {
 
 void HardwareController::drawCommandHistory() {
   display_.setCursor(0, 32);
-  display_.print("Ultimos comandos:");
-  display_.setCursor(0, 40);
-  display_.print(commandHistory_[0]);
-  display_.setCursor(0, 48);
-  display_.print(commandHistory_[1]);
-  display_.setCursor(0, 56);
-  display_.print(commandHistory_[2]);
+  display_.print("Ult. 3 cmds:");
+  for (int i = 0; i < 3; ++i) {
+    String line = commandHistory_[i];
+    if (line.length() > 21) {
+      line = line.substring(0, 21);
+    }
+    display_.setCursor(0, static_cast<int16_t>(40 + (i * 8)));
+    display_.print(line);
+  }
 }
 
 bool HardwareController::showComponent(const String &component) {
@@ -134,10 +136,10 @@ bool HardwareController::showComponent(const String &component) {
   display_.setCursor(0, 0);
 
   if (component == "led") {
-    display_.println("Estado LEDs");
-    display_.print("Verde: ");
+    display_.println("Estado LED");
+    display_.print("Led verde: ");
     display_.println(data.greenLedOn ? "encendido" : "apagado");
-    display_.print("Azul: ");
+    display_.print("Led azul: ");
     display_.println(data.blueLedOn ? "encendido" : "apagado");
   } else if (component == "pot") {
     display_.println("Potenciometro");
@@ -147,14 +149,25 @@ bool HardwareController::showComponent(const String &component) {
     display_.print("Umbral: ");
     display_.print(thresholdV_, 2);
     display_.println(" V");
+    display_.print("Base auto: ");
+    display_.print(automaticBaselineV_, 2);
+    display_.println(" V");
   } else if (component == "dht") {
     display_.println("Sensor DHT22");
     display_.print("Temp: ");
-    if (isnan(data.temperatureC)) display_.println("sin lectura");
-    else { display_.print(data.temperatureC, 1); display_.println(" C"); }
+    if (isnan(data.temperatureC)) {
+      display_.println("sin lectura");
+    } else {
+      display_.print(data.temperatureC, 1);
+      display_.println(" C");
+    }
     display_.print("Hum: ");
-    if (isnan(data.humidityPercent)) display_.println("sin lectura");
-    else { display_.print(data.humidityPercent, 1); display_.println(" %"); }
+    if (isnan(data.humidityPercent)) {
+      display_.println("sin lectura");
+    } else {
+      display_.print(data.humidityPercent, 1);
+      display_.println(" %");
+    }
   } else {
     showUnknownDisplayCommand();
     return false;
