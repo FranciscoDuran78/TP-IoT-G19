@@ -1,64 +1,63 @@
-# TPI IoT - PlatformIO + Wokwi
+# TPI IoT G19 — TA 4k01 (consigna TPI-01)
 
-Proyecto inicial para el Trabajo Práctico Integrador de Tecnologías para la Automatización. El entorno de desarrollo es PlatformIO con framework Arduino y simulación local en Wokwi.
+Sistema embebido con ESP32: DHT22 + potenciómetro, LEDs, OLED, **ThingSpeak** y bot de **Telegram**.
+
+Enunciado de referencia: [`consigna/TA4k01-TPI-01.pdf`](consigna/TA4k01-TPI-01.pdf).
+
+## Hardware
+
+| Periférico | Pin |
+|------------|-----|
+| DHT22 | GPIO 33 |
+| Potenciómetro | GPIO 32 |
+| LED verde | GPIO 23 |
+| LED azul | GPIO 2 |
+| OLED SDA / SCL | GPIO 21 / 22 |
 
 ## Estructura
 
 ```text
-TPI IoT/
+TP-IoT-G19/
 ├── platformio.ini
-├── wokwi.toml
-├── diagram.json
-├── include/
-│   ├── TPIConfig.h
-│   ├── secrets.h
-│   └── secrets.example.h
-├── lib/
-│   ├── HardwareController/src/
-│   ├── TelegramBotService/src/
-│   └── ThingSpeakService/src/
-└── src/
-    └── main.cpp
+├── wokwi.toml / diagram.json
+├── consigna/TA4k01-TPI-01.pdf
+├── include/          TPIConfig.h, secrets.example.h
+├── lib/              HardwareController, TelegramBotService, ThingSpeakService
+├── src/main.cpp
+└── entrega/TPI_IoT_G19.ino
 ```
 
-## Primeros pasos
+## Setup
 
-1. Abrir la carpeta `TPI IoT` como proyecto en VS Code con PlatformIO.
-2. Editar `include/secrets.h` con la red Wi-Fi, el token del bot y la Write API Key de ThingSpeak.
-3. Compilar con la tarea **PlatformIO: Build** o con `pio run`. PlatformIO descargará las bibliotecas declaradas en `platformio.ini`.
-4. Para usar la placa física, conectar la ESP32 y ejecutar **PlatformIO: Upload** o `pio run --target upload`.
-5. Para Wokwi, abrir `diagram.json` y ejecutar **Wokwi: Start Simulator** después de compilar. `wokwi.toml` apunta al firmware y al archivo ELF que genera esta configuración.
-6. Para observar mensajes, abrir el monitor serie a 115200 baudios.
+1. Copiar `include/secrets.example.h` → `include/secrets.h` y completar Wi-Fi, token Telegram y Write API Key de ThingSpeak.
+2. Compilar con PlatformIO (`pio run` o **Build**).
+3. Placa: **Upload** + monitor 115200.
+4. Wokwi: abrir `diagram.json` → **Start Simulator** (después de compilar).
 
-La simulación usa `Wokwi-GUEST` como red inicial. Para Telegram y ThingSpeak se necesitan credenciales reales. El control local puede desarrollarse primero sin completar esas claves.
+`secrets.h` no se sube a git.
 
-## Qué contiene el código inicial
+ThingSpeak: `field1` = temperatura, `field2` = humedad.
 
-- `src/main.cpp`: inicialización del ESP32, conexión Wi-Fi, lectura periódica y ciclo principal.
-- `lib/HardwareController`: DHT22, potenciómetro, LEDs, OLED, modos y búfer de comandos.
-- `lib/TelegramBotService`: recepción y atención de comandos.
-- `lib/ThingSpeakService`: envío periódico y bajo demanda de temperatura y humedad.
-- `include/TPIConfig.h`: pines, límites e intervalos.
+## Comandos Telegram (TPI-01)
 
-## Comandos previstos
+| Comando | Acción |
+|---------|--------|
+| `/start` | Menú Markdown con emojis (texto plano) |
+| `/umbral <valor>` | Umbral en [1.0; 1.5] V; default 0.5 V; fuera de rango → vuelve a 0.5 |
+| `/estado` | Temp, humedad, pot y LEDs |
+| `/autoon` | Modo auto: toma el pot actual como línea base; LED azul si pot > base + umbral |
+| `/autooff` | Modo manual |
+| `/thingup` | Envía temp/humedad a ThingSpeak |
+| `/displayled` `/displaypot` `/displaydht` | OLED + últimos 3 comandos OK |
 
-- `/start`: menú de texto con formato Markdown y emojis.
-- `/umbral <valor>`: configura el umbral en voltios.
-- `/estado`: informa temperatura, humedad, voltaje del potenciómetro y estados de los LEDs.
-- `/autoon` y `/autooff`: activa o desactiva el control automático.
-- `/thingup`: envía una lectura a ThingSpeak.
-- `/displayled`, `/displaypot` y `/displaydht`: muestra el estado solicitado en la OLED y mantiene los últimos tres comandos válidos en la parte inferior.
+Extras para modo manual (el enunciado no nombra sintaxis): `/ledazulon`, `/ledazuloff`, `/ledverdeon`, `/ledverdeoff`.
 
-El enunciado no da nombres para comandos manuales de LEDs. Como propuesta para habilitar el modo manual, el código agrega `/ledazulon`, `/ledazuloff`, `/ledverdeon` y `/ledverdeoff`; confirmen esos nombres con el equipo docente.
+## Checklist entrega UV (`4k01TP02/26`)
 
-## Puntos del enunciado para confirmar
+- [ ] `secrets.h` con credenciales reales (no subirlas)
+- [ ] Prueba en placa UTN (lunes)
+- [ ] Wokwi + `entrega/TPI_IoT_G19.ino` + libs propias
+- [ ] Canal ThingSpeak del grupo
+- [ ] Integrantes en selector UV (máx. 6)
 
-1. **Umbral:** el documento da `0.5 V` por defecto, pero indica un rango válido de `1.0 a 1.5 V`. El código mantiene ambos datos literalmente: inicia en `0.5 V` y vuelve a ese valor si recibe uno fuera del rango.
-2. **Línea base automática:** al ejecutar `/autoon`, el código toma el voltaje actual del potenciómetro como línea base y enciende el LED azul cuando la lectura supera `línea base + umbral`. Esta interpretación está aislada en `HardwareController::updateAutomaticControl()` para poder cambiarla si la cátedra define otra regla.
-3. **LED verde:** el enunciado enumera el LED verde, pero no especifica su comportamiento automático. Por ahora inicia apagado y puede controlarse mediante los comandos manuales propuestos.
-4. **ThingSpeak:** se usa `field1 = temperatura` y `field2 = humedad`. Cambiar el mapeo si el canal del grupo usa otros campos.
-5. **Entrega `.ino`:** PlatformIO usa `src/main.cpp` como sketch principal. El enunciado también solicita un archivo `.ino`; al preparar la entrega, generar una copia final del sketch con esa extensión y adjuntarla junto con el proyecto Wokwi y sus bibliotecas propias.
-
-## Notas de credenciales
-
-`include/secrets.h` contiene marcadores para completar y está excluido por `.gitignore`. No subir tokens ni claves a repositorios compartidos. `include/secrets.example.h` queda como plantilla. El cliente HTTPS de Telegram usa `setInsecure()` como configuración de prototipo; para una entrega final, reemplazarlo por verificación de certificado.
+Fechas: grupos pares 11/11 · impares **18/11**.
