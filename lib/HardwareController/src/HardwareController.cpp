@@ -4,15 +4,39 @@
 
 HardwareController::HardwareController()
     : dht_(PIN_DHT22, DHT22),
-      display_(128, 64, &Wire, -1),
+      display_(128, 64, &Wire),
       thresholdV_(UMBRAL_DEFAULT_V),
       automaticBaselineV_(0.0f),
-      automaticMode_(false) {
+      automaticMode_(false),
+      oledReady_(false) {
   currentData_.temperatureC = NAN;
   currentData_.humidityPercent = NAN;
   currentData_.potentiometerV = 0.0f;
   currentData_.greenLedOn = false;
   currentData_.blueLedOn = false;
+}
+
+bool HardwareController::initOled() {
+  // Misma inicializacion que el apunte / TP2 de la placa UTN (SH1106).
+  Wire.begin(PIN_OLED_SDA, PIN_OLED_SCL);
+  delay(50);
+
+  if (!display_.begin(OLED_DIRECCION_I2C, true)) {
+    Serial.println("No se pudo inicializar OLED SH1106");
+    oledReady_ = false;
+    return false;
+  }
+
+  oledReady_ = true;
+  display_.clearDisplay();
+  display_.setTextSize(1);
+  display_.setTextColor(SH110X_WHITE);
+  display_.setCursor(0, 0);
+  display_.println(F("TPI IoT G19"));
+  display_.println(F("OLED SH1106 OK"));
+  display_.display();
+  Serial.println("OLED SH1106 OK");
+  return true;
 }
 
 void HardwareController::begin() {
@@ -24,18 +48,37 @@ void HardwareController::begin() {
   setGreenLed(false);
   setBlueLed(false);
   dht_.begin();
+  initOled();
+}
 
-  Wire.begin(PIN_OLED_SDA, PIN_OLED_SCL);
-  if (!display_.begin(SSD1306_SWITCHCAPVCC, OLED_DIRECCION_I2C)) {
-    Serial.println("No se pudo inicializar la pantalla OLED");
+bool HardwareController::oledReady() const {
+  return oledReady_;
+}
+
+void HardwareController::showStatusScreen(const String &wifiLine) {
+  if (!oledReady_) {
     return;
   }
-
   display_.clearDisplay();
   display_.setTextSize(1);
-  display_.setTextColor(SSD1306_WHITE);
+  display_.setTextColor(SH110X_WHITE);
   display_.setCursor(0, 0);
-  display_.println("TPI IoT listo");
+  display_.println(F("TPI IoT G19"));
+  display_.println(wifiLine);
+  display_.print(F("Temp: "));
+  if (isnan(currentData_.temperatureC)) {
+    display_.println(F("--"));
+  } else {
+    display_.print(currentData_.temperatureC, 1);
+    display_.println(F(" C"));
+  }
+  display_.print(F("Hum: "));
+  if (isnan(currentData_.humidityPercent)) {
+    display_.println(F("--"));
+  } else {
+    display_.print(currentData_.humidityPercent, 1);
+    display_.println(F(" %"));
+  }
   display_.display();
 }
 
@@ -63,8 +106,6 @@ void HardwareController::updateAutomaticControl() {
     return;
   }
 
-  // Interpretacion inicial: el umbral es una diferencia sobre la linea base.
-  // Confirmar esta interpretacion con el equipo/docente antes de cerrar el TPI.
   const float limite = automaticBaselineV_ + thresholdV_;
   setBlueLed(currentData_.potentiometerV > limite);
 }
@@ -117,7 +158,7 @@ void HardwareController::rememberCommand(const String &command) {
 
 void HardwareController::drawCommandHistory() {
   display_.setCursor(0, 32);
-  display_.print("Ult. 3 cmds:");
+  display_.print(F("Ult. 3 cmds:"));
   for (int i = 0; i < 3; ++i) {
     String line = commandHistory_[i];
     if (line.length() > 21) {
@@ -129,44 +170,47 @@ void HardwareController::drawCommandHistory() {
 }
 
 bool HardwareController::showComponent(const String &component) {
+  if (!oledReady_) {
+    return false;
+  }
   const TelemetryData data = refreshSensors();
   display_.clearDisplay();
   display_.setTextSize(1);
-  display_.setTextColor(SSD1306_WHITE);
+  display_.setTextColor(SH110X_WHITE);
   display_.setCursor(0, 0);
 
   if (component == "led") {
-    display_.println("Estado LED");
-    display_.print("Led verde: ");
-    display_.println(data.greenLedOn ? "encendido" : "apagado");
-    display_.print("Led azul: ");
-    display_.println(data.blueLedOn ? "encendido" : "apagado");
+    display_.println(F("Estado LED"));
+    display_.print(F("Led verde: "));
+    display_.println(data.greenLedOn ? F("encendido") : F("apagado"));
+    display_.print(F("Led azul: "));
+    display_.println(data.blueLedOn ? F("encendido") : F("apagado"));
   } else if (component == "pot") {
-    display_.println("Potenciometro");
-    display_.print("Voltaje: ");
+    display_.println(F("Potenciometro"));
+    display_.print(F("Voltaje: "));
     display_.print(data.potentiometerV, 2);
-    display_.println(" V");
-    display_.print("Umbral: ");
+    display_.println(F(" V"));
+    display_.print(F("Umbral: "));
     display_.print(thresholdV_, 2);
-    display_.println(" V");
-    display_.print("Base auto: ");
+    display_.println(F(" V"));
+    display_.print(F("Base auto: "));
     display_.print(automaticBaselineV_, 2);
-    display_.println(" V");
+    display_.println(F(" V"));
   } else if (component == "dht") {
-    display_.println("Sensor DHT22");
-    display_.print("Temp: ");
+    display_.println(F("Sensor DHT22"));
+    display_.print(F("Temp: "));
     if (isnan(data.temperatureC)) {
-      display_.println("sin lectura");
+      display_.println(F("sin lectura"));
     } else {
       display_.print(data.temperatureC, 1);
-      display_.println(" C");
+      display_.println(F(" C"));
     }
-    display_.print("Hum: ");
+    display_.print(F("Hum: "));
     if (isnan(data.humidityPercent)) {
-      display_.println("sin lectura");
+      display_.println(F("sin lectura"));
     } else {
       display_.print(data.humidityPercent, 1);
-      display_.println(" %");
+      display_.println(F(" %"));
     }
   } else {
     showUnknownDisplayCommand();
@@ -179,20 +223,26 @@ bool HardwareController::showComponent(const String &component) {
 }
 
 void HardwareController::showUnknownDisplayCommand() {
+  if (!oledReady_) {
+    return;
+  }
   display_.clearDisplay();
   display_.setTextSize(1);
-  display_.setTextColor(SSD1306_WHITE);
+  display_.setTextColor(SH110X_WHITE);
   display_.setCursor(0, 0);
-  display_.println("Comando display");
-  display_.println("no identificado");
+  display_.println(F("Comando display"));
+  display_.println(F("no identificado"));
   drawCommandHistory();
   display_.display();
 }
 
 void HardwareController::showMessage(const String &message) {
+  if (!oledReady_) {
+    return;
+  }
   display_.clearDisplay();
   display_.setTextSize(1);
-  display_.setTextColor(SSD1306_WHITE);
+  display_.setTextColor(SH110X_WHITE);
   display_.setCursor(0, 0);
   display_.println(message);
   drawCommandHistory();

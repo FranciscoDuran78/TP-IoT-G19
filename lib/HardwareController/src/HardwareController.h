@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Adafruit_SSD1306.h>
+#include <Adafruit_SH110X.h>
 #include <DHT.h>
 #include <Wire.h>
 
@@ -37,16 +37,20 @@ class HardwareController {
   bool showComponent(const String &component);
   void showUnknownDisplayCommand();
   void showMessage(const String &message);
+  void showStatusScreen(const String &wifiLine);
+  bool oledReady() const;
 
  private:
   float readPotentiometerV();
   void drawCommandHistory();
+  bool initOled();
 
   DHT dht_;
-  Adafruit_SSD1306 display_;
+  Adafruit_SH1106G display_;
   TelemetryData currentData_;
   float thresholdV_;
   float automaticBaselineV_;
   bool automaticMode_;
+  bool oledReady_;
   String commandHistory_[3];
 };
