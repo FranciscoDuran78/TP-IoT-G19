@@ -103,10 +103,17 @@ void TelegramBotService::handleMessage(const String &chatId,
   }
 
   if (command == "/thingup") {
-    const bool sent = thingSpeak_.publishNow(hardware_.refreshSensors());
-    sendReply(chatId, sent ? "Datos enviados a ThingSpeak." :
-                             "No se pudieron enviar los datos. Revisa Wi-Fi, sensor y API Key.");
-    if (sent) hardware_.rememberCommand(text);
+    const TelemetryData data = hardware_.refreshSensors();
+    const bool sent = thingSpeak_.publishNow(data);
+    if (sent) {
+      sendReply(chatId, "Datos enviados a ThingSpeak.\nTemp: " +
+                            formatValue(data.temperatureC, " C") +
+                            "\nHum: " + formatValue(data.humidityPercent, " %"));
+      hardware_.rememberCommand(text);
+    } else {
+      sendReply(chatId, "No se pudo enviar a ThingSpeak.\nMotivo: " +
+                            thingSpeak_.lastError());
+    }
     return;
   }
 

@@ -20,5 +20,6 @@ constexpr float UMBRAL_MIN_V = 1.0f;
 constexpr float UMBRAL_MAX_V = 1.5f;
 
 constexpr unsigned long INTERVALO_TELEGRAM_MS = 1000UL;
+// Cuenta free de ThingSpeak: minimo ~15 s entre escrituras.
 constexpr unsigned long INTERVALO_THINGSPEAK_MS = 20000UL;
 constexpr unsigned long INTERVALO_WIFI_REINTENTO_MS = 10000UL;
