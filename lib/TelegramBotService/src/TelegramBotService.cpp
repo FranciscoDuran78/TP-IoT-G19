@@ -146,14 +146,14 @@ void TelegramBotService::handleMessage(const String &chatId,
 
 void TelegramBotService::sendStartMenu(const String &chatId) {
   const String menu =
-      "🤖 *TPI IoT*\n\n"
-      "📊 /estado - consultar sensores y LEDs\n"
-      "🎚️ /umbral 1.2 - configurar el umbral\n"
-      "⚙️ /autoon - activar control automatico\n"
-      "🖐️ /autooff - pasar a control manual\n"
-      "☁️ /thingup - enviar datos a ThingSpeak\n"
-      "🖥️ /displayled, /displaypot, /displaydht\n"
-      "💡 /ledazulon, /ledazuloff, /ledverdeon, /ledverdeoff - control manual propuesto";
+      " *TPI IoT*\n\n"
+      " /estado - consultar sensores y LEDs\n"
+      " /umbral 1.2 - configurar el umbral\n"
+      " /autoon - activar control automatico\n"
+      " /autooff - pasar a control manual\n"
+      " /thingup - enviar datos a ThingSpeak\n"
+      " /displayled, /displaypot, /displaydht\n"
+      " /ledazulon, /ledazuloff, /ledverdeon, /ledverdeoff - control manual propuesto";
   bot_.sendMessage(chatId, menu, "Markdown");
 }
 
